@@ -1,0 +1,2 @@
+v1
+{"path":"file:///home/ubuntu-test/customer_segmentation_repo/spark_processing/output/raw_transactions/part-00000-37416d9f-066b-42e1-a4bc-d3ca6d3bd86d-c000.snappy.parquet","size":1342,"isDir":false,"modificationTime":1744543424646,"blockReplication":1,"blockSize":33554432,"action":"add"}

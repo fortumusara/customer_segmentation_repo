@@ -1,15 +1,14 @@
+---
+
 # 🧠 Customer Segmentation & Personalization ETL Pipeline
 
-This project demonstrates a real-time ETL pipeline for customer segmentation and 
-personalized offer delivery. It integrates data from banking transactions, customer 
-demographics, and engagement sources to build enriched customer profiles and drive marketing decisions.
+This project demonstrates a real-time ETL pipeline for customer segmentation and personalized offer delivery. It integrates data from banking transactions, customer demographics, and engagement sources to build enriched customer profiles and drive marketing decisions.
 
 ---
 
 ## 🚀 Project Overview
 
-**Goal:** Segment customers based on behavior and demographics, and deliver real-time personalized 
-offers using modern data tools and ML algorithms.
+**Goal:** Segment customers based on behavior and demographics, and deliver real-time personalized offers using modern data tools and ML algorithms.
 
 **Technologies Used:**
 - **Kafka** – Real-time transaction ingestion
@@ -19,65 +18,102 @@ offers using modern data tools and ML algorithms.
 - **Python APIs** – Integration with personalization platforms (e.g., Salesforce, Twilio)
 
 ---
-Pipeline Architecture
+
+## 🛠️ Pipeline Architecture
+
+```
+Kafka Producer → Spark Structured Streaming → Parquet Files → Snowflake
+```
+
 ---
-▶️ Quickstart
-✅ Start Kafka Producer
 
-    cd kafka_producer
-    python send_transactions.py
+## ▶️ Quickstart
 
-✅ Launch Spark Streaming Job
+### ✅ 1. Start Kafka Producer
 
-    cd spark_processing
-    spark-submit stream_processor.py
+Simulate real-time banking transactions:
 
-✅ Load Segments to Snowflake
+```bash
+cd kafka_producer
+python send_transactions.py
+```
 
-    cd snowflake_loader
-    python load_to_snowflake.py
+### ✅ 2. Launch Spark Streaming Job
 
-📊 Sample Use Case
+Process the stream, write to Parquet:
 
-    A customer in the Gold Tier with high grocery spending and low travel purchases might receive:
+```bash
+cd spark_processing
+spark-submit stream_processor.py
+```
 
-    "Earn 30% cash back on groceries this month, and 20% off your next travel booking!"
+Parquet output folders:
+- `spark_processing/output/raw_transactions`
+- `spark_processing/output/segmented_customers`
 
-🔮 Roadmap
+### ✅ 3. Load Data to Snowflake
 
-Terraform Template for AWS Glue, Snowflake, Kafka
+Use the unified driver to load raw and segmented data from Parquet to Snowflake:
 
-Databricks Notebook for clustering & LTV scoring
+```bash
+python driver.py
+```
 
-REST API mock for customer demographics
+This driver handles both raw and aggregated files and uploads them into the appropriate Snowflake tables:
+- `CUSTOMER_SEGMENTATION.RAW_TRANSACTIONS`
+- `CUSTOMER_SEGMENTATION.SEGMENTED_CUSTOMERS`
 
-Dashboard with Power BI or Streamlit
+---
 
-🤝 Contributions
+## 📊 Sample Use Case
+
+> A customer in the Gold Tier with high grocery spending and low travel purchases might receive:  
+> **"Earn 30% cash back on groceries this month, and 20% off your next travel booking!"**
+
+---
+
+## 🔮 Roadmap
+
+- [ ] Terraform template for AWS Glue, Snowflake, Kafka
+- [ ] Databricks Notebook for clustering & LTV scoring
+- [ ] REST API mock for customer demographics
+- [ ] Dashboard with Power BI or Streamlit
+
+---
+
+## 🤝 Contributions
 
 Pull requests are welcome! For major changes, please open an issue first to discuss what you’d like to change.
-📄 License
+
+---
+
+## 📄 License
 
 MIT License © 2025 Fortune
 
-
 ---
 
-----
 ## 📦 Project Structure
 
 ```bash
-coding_assessment_repo/
+customer_segmentation_repo/
+├── driver.py                     # Unified script to trigger Snowflake loading
 ├── kafka_producer/
-│   └── send_transactions.py       # Simulates real-time banking transactions
+│   └── send_transactions.py      # Simulates real-time banking transactions
 ├── spark_processing/
-│   └── stream_processor.py        # Processes Kafka stream using PySpark
+│   ├── stream_processor.py       # Processes Kafka stream using PySpark
+│   └── output/                   # Parquet files (raw + segmented)
 ├── snowflake_loader/
-│   └── load_to_snowflake.py       # Batch loading transformed data
+│   └── load_to_snowflake.py      # Batch load logic for Snowflake
 ├── terraform/
-│   └── main.tf                    # (Coming Soon) Infra provisioning
+│   └── main.tf                   # (Coming Soon) Infra provisioning
 ├── notebooks/
-│   └── customer_segmentation.ipynb # Databricks ML notebook (Coming Soon)
+│   └── customer_segmentation.ipynb  # Databricks ML notebook (Coming Soon)
+├── .env
+├── requirements.txt
 ├── README.md
+```
 
 ---
+
+

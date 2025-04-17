@@ -6,9 +6,9 @@ import random
 import time
 from datetime import datetime
 
-# Kafka configuration
-KAFKA_BROKER = 'localhost:9092'
-TOPIC_NAME = 'bank-transactions'
+# ✅ Updated Kafka configuration
+KAFKA_BROKER = '192.168.82.154:9092'  # Replace with your actual host IP if different
+TOPIC_NAME = 'bank-transactions'     # ✅ Correct topic name
 
 # Sample data
 CUSTOMERS = ['C001', 'C002', 'C003', 'C004']
@@ -22,10 +22,10 @@ producer = KafkaProducer(
 
 def generate_transaction():
     return {
-        "customer_id": random.choice(CUSTOMERS),
-        "amount": round(random.uniform(5.0, 250.0), 2),
-        "category": random.choice(CATEGORIES),
-        "timestamp": datetime.utcnow().isoformat()
+        "CUSTOMER_ID": random.choice(CUSTOMERS),
+        "AMOUNT": round(random.uniform(5.0, 250.0), 2),
+        "CATEGORY": random.choice(CATEGORIES),
+        "TIMESTAMP": datetime.utcnow().isoformat()
     }
 
 if __name__ == "__main__":

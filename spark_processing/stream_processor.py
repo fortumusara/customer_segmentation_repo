@@ -1,22 +1,25 @@
-# spark_processing/stream_processor.py
-
+import os
+from dotenv import load_dotenv
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, window
 from pyspark.sql.types import StructType, StringType, DoubleType, TimestampType
 
-# Define schema for Kafka JSON payload
-schema = StructType() \
-    .add("customer_id", StringType()) \
-    .add("amount", DoubleType()) \
-    .add("category", StringType()) \
-    .add("timestamp", StringType())  # Will be cast to TimestampType later
+# Load environment variables from .env file (if needed)
+load_dotenv()
 
-# Create Spark session
+# Define Kafka message schema
+schema = StructType() \
+    .add("CUSTOMER_ID", StringType()) \
+    .add("AMOUNT", DoubleType()) \
+    .add("CATEGORY", StringType()) \
+    .add("TIMESTAMP", StringType())  # Will cast later to timestamp
+
+# Initialize SparkSession with Kafka support
 spark = SparkSession.builder \
-    .appName("KafkaTransactionProcessor") \
+    .appName("KafkaToParquetProcessor") \
     .getOrCreate()
 
-# Read stream from Kafka
+# Read from Kafka
 df_raw = spark.readStream \
     .format("kafka") \
     .option("kafka.bootstrap.servers", "localhost:9092") \
@@ -24,25 +27,43 @@ df_raw = spark.readStream \
     .option("startingOffsets", "latest") \
     .load()
 
-# Convert Kafka value to string and parse JSON
+# Parse and clean Kafka JSON messages
 df_parsed = df_raw.selectExpr("CAST(value AS STRING) as json_str") \
     .select(from_json(col("json_str"), schema).alias("data")) \
     .select("data.*") \
-    .withColumn("timestamp", col("timestamp").cast(TimestampType()))
+    .withColumn("TIMESTAMP", col("TIMESTAMP").cast(TimestampType()))
 
-# Group and aggregate by 1-minute windows
-df_agg = df_parsed.groupBy(
-    window(col("timestamp"), "1 minute"),
-    col("customer_id")
-).agg(
-    {"amount": "sum"}
-).withColumnRenamed("sum(amount)", "total_spent")
-
-# Output to console
-query = df_agg.writeStream \
-    .outputMode("update") \
-    .format("console") \
-    .option("truncate", False) \
+# Save raw cleaned transactions
+df_parsed.writeStream \
+    .format("parquet") \
+    .option("path", "output/raw_transactions/") \
+    .option("checkpointLocation", "checkpoints/raw") \
+    .outputMode("append") \
     .start()
 
-query.awaitTermination()
+# Add watermark to allow aggregation on event time
+df_with_watermark = df_parsed.withWatermark("TIMESTAMP", "2 minutes")
+
+# Perform aggregation: total spent per customer per 1-minute window
+df_agg = df_with_watermark.groupBy(
+    window(col("TIMESTAMP"), "1 minute"),
+    col("CUSTOMER_ID")
+).agg({"AMOUNT": "sum"}) \
+    .withColumnRenamed("sum(AMOUNT)", "TOTAL_SPENT")
+
+# Format the final output
+df_final = df_agg.select(
+    col("window.start").alias("WINDOW_START"),
+    col("window.end").alias("WINDOW_END"),
+    col("CUSTOMER_ID"),
+    col("TOTAL_SPENT")
+)
+
+# Write aggregated results to disk
+df_final.writeStream \
+    .format("parquet") \
+    .option("path", "output/segmented_customers/") \
+    .option("checkpointLocation", "checkpoints/segmented") \
+    .outputMode("append") \
+    .start() \
+    .awaitTermination()
